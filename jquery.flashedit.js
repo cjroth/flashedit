@@ -99,24 +99,30 @@
   };
 
   Editable.prototype.attachEventListeners = function() {
+
     var self = this;
+
     this.$element.on('click', function() {
       self.switchToEditMode();
       return false;
     });
+
     this.$cancel.on('click', function() {
       self.switchToViewMode();
       return false;
     });
+
     this.$submit.on('click', function() {
       self.$form.trigger('submit', self);
       self.$container.addClass('loading');
       return false;
     });
+
     this.$form.on('error', function(e, editable, data) {
       editable.$container.removeClass('loading');
       return false;
     });
+
     this.$form.on('success', function(e, editable, data) {
       editable.$container.removeClass('loading');
       editable
@@ -124,7 +130,9 @@
         .switchToViewMode()
       return false;
     });
+
     return this;
+    
   };
 
   function parseData(raw) {
