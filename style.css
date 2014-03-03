@@ -1,0 +1,24 @@
+body {
+  margin: 50px;
+}
+
+.container {
+  width: 400px;
+  margin: 0 auto;
+}
+
+form .form-error {
+  color: #f00;
+}
+
+form .loading:after {
+  line-height: 20px;
+  padding: 4px;
+  width: 16px;
+  height: 16px;
+  background: #eee;
+  display: inline-block;
+  background: url(ajax-loader.gif) no-repeat center;
+  background-size: cover;
+  content: ' ';
+}
