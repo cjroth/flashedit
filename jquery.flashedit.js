@@ -25,7 +25,8 @@
 
     this
       .initFlashback()
-      .renderContainer()
+      .loadExistingElements()
+      .renderElements()
       .renderInput()
       .renderSubmitButton()
       .renderCancelButton()
@@ -33,21 +34,35 @@
 
   }
 
-  Editable.prototype.renderContainer = function() {
-    this.$container = $('<div>')
-      .addClass('editable-edit')
-      .hide()
-      .insertAfter(this.$element)
+  Editable.prototype.loadExistingElements = function() {
+    var $input = this.$form.find('[name="' + this.name + '"]');
+    if (!$input.length) return this;
+    this.$container = $input.parent();
+    this.$input = $input;
+    this.$submit = this.$container.find('[type="submit"]');
+    this.$cancel = this.$container.find('.editable-cancel');
+    return this;
+  };
+
+  Editable.prototype.renderElements = function() {
+    if (!this.$container) {
+      this.$container = $('<div>')
+        .addClass('editable-container')
+        .insertAfter(this.$element)
+    }
+    this.$container.hide();
     return this;
   };
 
   Editable.prototype.renderInput = function() {
+    if (this.$input) return this;
     this.$input = this.$element.data('options') ? renderSelectInput(this.$element) : renderTextInput(this.$element);
     this.$input.appendTo(this.$container);
     return this;
   };
 
   Editable.prototype.renderSubmitButton = function() {
+    if (this.$submit) return this;
     this.$submit = $('<button>')
       .attr('type', 'submit')
       .text('Update')
@@ -57,6 +72,7 @@
   };
 
   Editable.prototype.renderCancelButton = function() {
+    if (this.$cancel) return this;
     this.$cancel = $('<button>')
       .text('Cancel')
       .addClass('btn btn-default') // @todo get these classes from somewhere else
@@ -132,7 +148,7 @@
     });
 
     return this;
-    
+
   };
 
   function parseData(raw) {
