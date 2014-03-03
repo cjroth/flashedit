@@ -1,6 +1,6 @@
 /**
  *
- * jQuery Flash Edit
+ * jQuery Flashedit
  *
  * Copyright 2014 Christopher J. Roth <chris@cjroth.com>
  * http://opensource.org/licenses/MIT
@@ -8,15 +8,131 @@
  */
 (function($) {
 
-  var renderTextElement = function($el) {
-    return $('<input>')
-      .attr('type', 'text')
-      .attr('name', $el.data('name'))
-      .attr('class', $el.data('class'))
-      .attr('value', $el.text())
+  $.fn.flashedit = function(params) {
+    $(this).each(function(i, el) {
+      new Editable($(el));
+    });
+    return this;
   };
 
-  var parseDataLikeCSS = function(raw) {
+  function Editable($el) {
+
+    this.$element = $el;
+    this.$form = this.$element.parents('form');
+    this.name = this.$element.data('name');
+
+    this.mode = 'view';
+
+    this
+      .initFlashback()
+      .renderContainer()
+      .renderInput()
+      .renderSubmitButton()
+      .renderCancelButton()
+      .attachEventListeners()
+
+  }
+
+  Editable.prototype.renderContainer = function() {
+    this.$container = $('<div>')
+      .addClass('editable-edit')
+      .hide()
+      .insertAfter(this.$element)
+    return this;
+  };
+
+  Editable.prototype.renderInput = function() {
+    this.$input = this.$element.data('options') ? renderSelectInput(this.$element) : renderTextInput(this.$element);
+    this.$input.appendTo(this.$container);
+    return this;
+  };
+
+  Editable.prototype.renderSubmitButton = function() {
+    this.$submit = $('<button>')
+      .attr('type', 'submit')
+      .text('Update')
+      .addClass('btn btn-default') // @todo get these classes from somewhere else
+      .appendTo(this.$container)
+    return this;
+  };
+
+  Editable.prototype.renderCancelButton = function() {
+    this.$cancel = $('<button>')
+      .text('Cancel')
+      .addClass('btn btn-default') // @todo get these classes from somewhere else
+      .appendTo(this.$container)
+    return this;
+  };
+
+  Editable.prototype.initFlashback = function() {
+    var self = this;
+    this.$form.flashback();
+    return this;
+  };
+
+  Editable.prototype.updateValue = function(value) {
+    if (this.$element.data('options'))
+      value = parseData(this.$element.data('options'))[value];
+    this.$element.text(value);
+    this.$input.val(value);
+    return this;
+  };
+
+  Editable.prototype.switchToEditMode = function() {
+    if (this.$form.data('mode') === 'edit') return this;
+    this.$element.trigger('view-end', this);
+    this.$element.hide();
+    this.$container.show();
+    this.$form.data('mode', 'edit');
+    this.$element.trigger('edit-start', this);
+    return this;
+  };
+
+  Editable.prototype.switchToViewMode = function() {
+    if (this.$form.data('mode') === 'view') return this;
+    this.$element.trigger('edit-end', this);
+    this.$container.hide();
+    this.$element.show();
+    this.$form.data('mode', 'view');
+    this.$element.trigger('view-start', this);
+    return this;
+  };
+
+  Editable.prototype.attachEventListeners = function() {
+    var self = this;
+    this.$element.on('click', function() {
+      self.switchToEditMode();
+      return false;
+    });
+    this.$cancel.on('click', function() {
+      self.switchToViewMode();
+      return false;
+    });
+    this.$submit.on('click', function() {
+      self.$form.trigger('submit', self);
+      self.$container.addClass('loading');
+      return false;
+    });
+    this.$form.on('error', function(e, editable, data) {
+      editable.$container.removeClass('loading');
+      return false;
+    });
+    this.$form.on('success', function(e, editable, data) {
+      editable.$container.removeClass('loading');
+      editable
+        .updateValue(data[editable.name] || editable.$input.val())
+        .switchToViewMode()
+      return false;
+    });
+    return this;
+  };
+
+  function parseData(raw) {
+    if (raw.trim().charAt(0) === '{') return parseDataLikeJSON(raw);
+    return parseDataLikeCSS(raw);
+  }
+
+  function parseDataLikeCSS(raw) {
     var data = {};
     raw = raw.split(';');
     for (var i in raw) {
@@ -27,158 +143,38 @@
       data[key] = value;
     }
     return data;
-  };
+  }
 
-  var parseDataLikeJSON = function(raw) {
+  function parseDataLikeJSON(raw) {
     try {
       return JSON.parse(raw);
     } catch(e) {
       return {};
     }
-  };
+  }
 
-  var parseData = function(raw) {
-    if (raw.trim().charAt(0) === '{')
-      return parseDataLikeJSON(raw);
-    return parseDataLikeCSS(raw);
-  };
+  function renderTextInput($element) {
+    var $input = $('<input>')
+      .attr('type', 'text')
+      .attr('name', $element.data('name'))
+      .attr('class', $element.data('class'))
+      .attr('value', $element.text())
+    return $input;
+  }
 
-  var renderSelectElement = function($el) {
-    var options = parseData($el.data('options'));
-    var $in = $('<select>')
-      .attr('name', $el.data('name'))
-      .attr('class', $el.data('class'))
+  function renderSelectInput($element) {
+    var options = parseData($element.data('options'));
+    var $input = $('<select>')
+      .attr('name', $element.data('name'))
+      .attr('class', $element.data('class'))
     for (var value in options) {
       $('<option>')
         .attr('value', value)
-        .attr('selected', options[value] === $el.text())
+        .attr('selected', options[value] === $element.text())
         .text(options[value])
-        .appendTo($in);
+        .appendTo($input);
     }
-    return $in;
-  };
-
-  var generateInputElement = function($el) {
-    if ($el.data('options'))
-      return renderSelectElement($el);
-    return renderTextElement($el);
-  };
-
-  var generateSubmitButton = function($el) {
-    return $('<button>')
-      .attr('type', 'submit')
-      .text('Update')
-      .addClass('btn btn-default') // @todo get these classes from somewhere else
-  };
-
-  var generateCancelButton = function($el) {
-    return $('<button>')
-      .text('Cancel')
-      .addClass('btn btn-default') // @todo get these classes from somewhere else
-  };
-
-  var appendInputElement = function($el, $in) {
-    $el.after($in.hide());
-  };
-
-  var appendSubmitButton = function($el, $btn) {
-    $el.parent().append($btn.hide());
-  };
-
-  var appendCancelButton = function($el, $btn) {
-    $el.parent().append($btn.hide());
-  };
-
-  var switchToViewMode = function($el, $in, $submit, $cancel, $form) {
-    $in.hide();
-    $submit.hide();
-    $cancel.hide();
-    $el.show();
-    $form.data('mode', 'view');
-  };
-
-  var switchToEditMode = function($el, $in, $submit, $cancel, $form) {
-    $el.hide();
-    $in.show().focus();
-    $submit.show();
-    $cancel.show();
-    $form.data('mode', 'edit');
-  };
-
-  var updateValue = function($el, $in, val) {
-    if ($el.data('options')) {
-      var options = parseData($el.data('options'));
-      val = options[val];
-    }
-    $el.text(val);
-    $in.val(val);
-  };
-
-  var init = function($el) {
-
-    var $in = generateInputElement($el);
-    var $submit = generateSubmitButton($el);
-    var $cancel = generateCancelButton($el);
-
-    var $form = $el.parents('form').flashback({
-      success: function(data, args, $xhr, e) {
-        var $el = args.$el;
-        var $in = args.$in;
-        var $submit = args.$submit;
-        var $cancel = args.$cancel;
-        var val = data[$in.attr('name')];
-        $el.trigger('edit-end', [$in]);
-        if (typeof val === 'undefined')
-          val = $in.val();
-        updateValue($el, $in, val);
-        $in.parent().removeClass('loading');
-        switchToViewMode($el, $in, $submit, $cancel, $form);
-        $el.trigger('view-start', [$in]);
-      },
-      error: function(data, args, $xhr, e) {
-        var $el = args.$el;
-        var $in = args.$in;
-        $el.trigger('edit-error', [$in]);
-        $in.parent().removeClass('loading').addClass('error');
-      }
-    });
-
-    appendInputElement($el, $in);
-    appendSubmitButton($el, $submit);
-    appendCancelButton($el, $cancel);
-
-    $el.on('click', function() {
-      if ($form.data('mode') === 'edit') return false;
-      $el.trigger('view-end', [$in]);
-      switchToEditMode($el, $in, $submit, $cancel, $form);
-      $el.trigger('edit-start', [$in]);
-    });
-
-    // $in.on('blur', function(e) {
-    //   $in.parent().addClass('loading');
-    //   $form.trigger('submit', { $el: $el, $in: $in, $submit: $submit, $cancel: $cancel });
-    // });
-
-    $submit.on('click', function(e) {
-      $in.parent().addClass('loading');
-      $form.trigger('submit', { $el: $el, $in: $in, $submit: $submit, $cancel: $cancel });
-      return false;
-    });
-
-    $cancel.on('click', function(e) {
-      switchToViewMode($el, $in, $submit, $cancel, $form);
-      return false;
-    });
-
-  };
-
-  var plugin = function(params) {
-    $(this).each(function(i, el) {
-      init($(el));
-    });
-    return this;
-  };
-
-  $.fn.flashedit = plugin;
+    return $input;
+  }
 
 })(jQuery);

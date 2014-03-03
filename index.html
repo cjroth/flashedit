@@ -2,7 +2,7 @@
 <html lang=en-us>
   <head>
     <meta charset="utf-8">
-    <title>jQuery Flash Edit</title>
+    <title>jQuery Flashedit</title>
     <link href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
     <link href="style.css" rel="stylesheet">
   </head>
@@ -42,14 +42,20 @@
     <script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
     <script>
       $(document).ready(function() {
+
         $('.editable')
           .flashedit()
-          .on('edit-start', function(event, $input) {
-            console.debug('editing "' + $input.attr('name') + '"');
-          })
-          .on('view-start', function(event, $input) {
-            console.debug('viewing "' + $input.attr('name') + '"');
-          });
+          .on('edit-start', onEditStart)
+          .on('view-start', onViewStart)
+
+        function onEditStart(e, editable) {
+          console.debug('editing "' + editable.$input.attr('name') + '"');
+        }
+
+        function onViewStart(e, editable) {
+          console.debug('editing "' + editable.$input.attr('name') + '"');
+        }
+
       });
     </script>
 

@@ -86,6 +86,88 @@
  */
 (function($) {
 
+  $.fn.flashback = function(params) {
+    this.each(function() {
+      var $form = $(this);
+      if ($form.hasClass('flashback')) return;
+      new Flashback($form, params);
+    });
+    return this;
+  };
+
+  function Flashback($form, params) {
+
+    this.$form = $form;
+
+    this.params = $.extend({
+      redirect: this.$form.data('redirect'),
+      url: this.$form.attr('action'),
+      method: this.$form.attr('method') || 'post',
+      parser: defaultParser,
+      decorator: defaultDecorator,
+      renderer: defaultRenderer,
+      success: defaultSuccessCallback,
+      error: defaultErrorCallback
+    }, params);
+
+    this.$form.addClass('flashback');
+    this.attachEventListeners();
+
+  }
+
+  Flashback.prototype.attachEventListeners = function() {
+    var self = this;
+    this.$form.on('submit', function(e, args) {
+      self.submit(args);
+      return false;
+    });
+    return this;
+  };
+
+  Flashback.prototype.submit = function(args) {
+
+    // @todo break this function up into smaller functions
+
+    var self = this;
+
+    var $xhr = $.ajax({
+      url: this.params.url,
+      type: this.params.method.toUpperCase(),
+      data: this.$form.serialize()
+    });
+
+    $xhr.fail(function($xhr, textStatus, errorThrown) {
+      var errorData, errorHTML;
+      try {
+        errorData = JSON.parse($xhr.responseText);
+      } catch(err) {
+        if (!err instanceof SyntaxError) throw err;
+      }
+      errorData = self.params.parser(errorData);
+      errorHTML = {};
+      for (var fieldName in errorData) {
+        var fieldErrors = errorData[fieldName];
+        errorHTML[fieldName] = self.params.decorator(fieldErrors);
+      }
+      self.params.renderer.call(self.$form, errorHTML);
+      self.params.error.call(self.$form, errorData);
+      self.$form.trigger('error', [args, errorData]);
+    });
+
+    $xhr.done(function(data, textStatus, $xhr) {
+      if (typeof self.params.redirect === 'string') {
+        window.location = prepUrl(self.params.redirect, data);
+        return;
+      }
+      self.params.renderer.call(self.$form, {});
+      self.params.success.call(self.$form, data);
+      self.$form.trigger('success', [args, data]);
+    });
+
+    return this;
+
+  };
+
   /**
    * The default success callback will be called when a form submits
    * successfully. You can override it by supplying your own callback:
@@ -93,9 +175,20 @@
    *     $(form).flashback({ success: mySuccessCallback });
    *
    */
-  var defaultSuccessCallback = function(data, $xhr) {
+  function defaultSuccessCallback(data, $xhr) {
     // 
-  };
+  }
+
+  /**
+   * The default error callback will be called when a form has errors. You can
+   * override it by supplying your own callback:
+   *
+   *     $(form).flashback({ error: myErrorCallback });
+   *
+   */
+  function defaultErrorCallback(data, $xhr) {
+    // 
+  }
 
   /**
    * The default parser takes an error object where some properties are strings
@@ -119,7 +212,7 @@
    *     $(form).flashback({ parser: myErrorParser });
    * 
    */
-  var defaultParser = function(errorData) {
+  function defaultParser(errorData) {
     var fields = {};
     for (var i in errorData) {
       if (errorData[i] instanceof Array) {
@@ -129,7 +222,7 @@
       fields[i] = [errorData[i]];
     }
     return fields;
-  };
+  }
 
   /**
    * The default error decorator takes the first error in an array and wraps
@@ -144,9 +237,9 @@
    *     $(form).flashback({ decorator: myErrorDecorator });
    *
    */
-  var defaultDecorator = function(errors, fieldName) {
+  function defaultDecorator(errors, fieldName) {
     return $('<div class="form-error">' + errors[0] + '</div>');
-  };
+  }
 
   /**
    * The default renderer takes an object mapping field names to error HTML and
@@ -168,7 +261,7 @@
    *     $(form).flashback({ renderer: myErrorRenderer });
    *
    */
-  var defaultRenderer = function(fields) {
+  function defaultRenderer(fields) {
     var $form = this;
     $form.find('.form-error, .form-success').remove();
     fields.form && $form.prepend(fields.form);
@@ -176,7 +269,7 @@
       var $fieldErrors = fields[fieldName];
       $form.find('[name="' + fieldName + '"]').after($fieldErrors);
     }
-  };
+  }
 
   /**
    * Replace the :params in a url with their respective values from an object:
@@ -184,7 +277,7 @@
    *     prepUrl('/users/:id', { id: 123 }); // returns "/users/123"
    * 
    */
-  var prepUrl = function(url, data) {
+  function prepUrl(url, data) {
     if (!data) return url;
     params = url.match(/:[a-zA-Z_]+/g);
     for (var i in params) {
@@ -192,75 +285,6 @@
       url = url.replace(':' + param, data[param]);
     }
     return url;
-  };
-
-  var onSubmit = function(params, args, e) {
-
-    var $form = $(this);
-
-    params = $.extend({
-      redirect: $form.data('redirect'),
-      url: $form.attr('action'),
-      method: $form.attr('method') || 'post',
-      parser: defaultParser,
-      decorator: defaultDecorator,
-      renderer: defaultRenderer,
-      success: defaultSuccessCallback
-    }, params);
-
-    var ajaxParams = {
-      url: params.url,
-      type: params.method.toUpperCase(),
-      data: $form.serialize()
-    };
-
-    $xhr = $.ajax(ajaxParams);
-
-    $xhr.fail(function($xhr, textStatus, errorThrown) {
-      var errorData, errorHTML;
-      try {
-        errorData = JSON.parse($xhr.responseText);
-      } catch(err) {
-        if (!err instanceof SyntaxError) throw err;
-      }
-      errorData = params.parser(errorData);
-      errorHTML = {};
-      for (var fieldName in errorData) {
-        var fieldErrors = errorData[fieldName];
-        errorHTML[fieldName] = params.decorator(fieldErrors);
-      }
-      params.renderer.call($form, errorHTML);
-      params.error.call($form, errorData, args, $xhr, e);
-    });
-
-    $xhr.done(function(data, textStatus, $xhr) {
-      if (typeof params.redirect === 'string') {
-        window.location = prepUrl(params.redirect, data);
-        return;
-      }
-      params.renderer.call($form, {});
-      params.success.call($form, data, args, $xhr, e);
-    });
-
-    return false;
-
-  };
-
-  var plugin = function(params) {
-    $forms = this;
-    $forms.each(function() {
-      var $form = $(this);
-      if ($form.hasClass('flashback')) return;
-      $form
-        .addClass('flashback')
-        .on('submit', function(e, args) {
-          onSubmit.call(this, params, args, e);
-          return false;
-        });
-    });
-    return this;
-  };
-
-  $.fn.flashback = plugin;
+  }
 
 })(jQuery);
