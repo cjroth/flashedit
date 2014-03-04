@@ -9,23 +9,59 @@
 (function($) {
 
   $.fn.flashedit = function(params) {
-    $(this).each(function(i, el) {
-      new Editable($(el), params);
-    });
+    new EditableForm($(this), params);
     return this;
   };
 
-  function Editable($el, params) {
+  function EditableForm($form, params) {
+
+    var self = this;
+    this.$form = $form;
+    this.elements = [];
 
     this.params = $.extend({
-      multiedit: false, // can user edit more than one element at a time? (true or false)
-      cancel: 'button', // should we render the cancel button? (true or false)
+      cancel: 'button', // how should the user cancel editing? (button, blur, or both)
+      button: true, // should we show the edit button? (true, false)
+      classEditable: 'editable' // what class do editable elements have? (default: "editable")
     }, params);
 
-    this.$element = $el;
+    this.$form
+      .find('.' + this.params.classEditable).each(function() {
+        var $element = $(this);
+        var editable = new Editable($element, self.params, self);
+        self.addElement(editable);
+      })
+      .on('edit-start', function(e, editable) {
+        self.$form.addClass('editing');
+      })
+      .on('edit-end', function(e, editable) {
+        self.$form.removeClass('editing');
+      })
+  }
+
+  EditableForm.prototype.addElement = function(editable) {
+    this.elements.push(editable);
+    return this;
+  };
+
+  EditableForm.prototype.getElements = function(editable) {
+    return this.elements;
+  };
+
+  EditableForm.prototype.each = function(cb) {
+    for (var i in this.elements) {
+      cb.call(this, i, this.elements[i]);
+    }
+    return this;
+  };
+
+  function Editable($element, params, editableForm) {
+
+    this.$element = $element;
+    this.params = params;
+    this.editableForm = editableForm;
     this.$form = this.$element.parents('form');
     this.name = this.$element.data('name');
-
     this.mode = 'view';
 
     this
@@ -35,6 +71,7 @@
       .renderInput()
       .renderSubmitButton()
       .renderCancelButton()
+      .renderEditButton()
       .attachEventListeners()
 
   }
@@ -76,6 +113,16 @@
     return this;
   };
 
+  Editable.prototype.renderEditButton = function() {
+    if (!this.params.button) return this;
+    if (this.$edit) return this;
+    this.$edit = $('<button>')
+      .text('Edit')
+      .addClass('edit-button btn btn-default') // @todo get these classes from somewhere else
+      .insertAfter(this.$element)
+    return this;
+  };
+
   Editable.prototype.renderCancelButton = function() {
     if (this.params.cancel !== 'button' && this.params.cancel !== 'both') return this;
     if (this.$cancel) return this;
@@ -101,10 +148,8 @@
   };
 
   Editable.prototype.isAbleToEdit = function() {
-    if (this.params.multiedit) return true;
     var result = true;
     this.$form.find('[data-name]').each(function() {
-      console.log('what');
       if ($(this).data('mode') === 'edit') result = false;;
     })
     return result;
@@ -116,7 +161,9 @@
     this.$element.hide();
     this.$container.show();
     this.$element.data('mode', 'edit');
+    this.$edit && this.$edit.hide();
     this.$element.trigger('edit-start', this);
+    this.$form.trigger('edit-start', this);
     return this;
   };
 
@@ -126,7 +173,9 @@
     this.$container.hide();
     this.$element.show();
     this.$element.data('mode', 'view');
+    this.$edit && this.$edit.show();
     this.$element.trigger('view-start', this);
+    this.$form.trigger('edit-end', this);
     return this;
   };
 
@@ -134,7 +183,14 @@
 
     var self = this;
 
-    this.$element.on('click', function() {
+    if (this.params.button === false) {
+      this.$element.on('click', function() {
+        self.switchToEditMode();
+        return false;
+      });
+    }
+
+    this.$edit && this.$edit.on('click', function() {
       self.switchToEditMode();
       return false;
     });
@@ -171,6 +227,20 @@
       editable
         .updateValue(data[editable.name] || editable.$input.val())
         .switchToViewMode()
+      return false;
+    });
+
+    this.$form.on('edit-start', function(e, editable, data) {
+      self.editableForm.each(function(i, editable) {
+        editable.$edit && editable.$edit.hide();
+      });
+      return false;
+    });
+
+    this.$form.on('edit-end', function(e, editable, data) {
+      self.editableForm.each(function(i, editable) {
+        editable.$edit && editable.$edit.show();
+      });
       return false;
     });
 

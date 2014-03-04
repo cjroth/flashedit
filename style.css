@@ -7,6 +7,14 @@ body {
   margin: 0 auto;
 }
 
+form {
+  padding: 30px;
+}
+
+form dt, form dd {
+  line-height: 30px;
+}
+
 form .form-error {
   color: #f00;
 }
@@ -21,4 +29,8 @@ form .loading:after {
   background: url(ajax-loader.gif) no-repeat center;
   background-size: cover;
   content: ' ';
+}
+
+form.editing {
+  background: #eee;
 }
