@@ -10,12 +10,17 @@
 
   $.fn.flashedit = function(params) {
     $(this).each(function(i, el) {
-      new Editable($(el));
+      new Editable($(el), params);
     });
     return this;
   };
 
-  function Editable($el) {
+  function Editable($el, params) {
+
+    this.params = $.extend({
+      multiedit: false, // can user edit more than one element at a time? (true or false)
+      cancel: 'button', // should we render the cancel button? (true or false)
+    }, params);
 
     this.$element = $el;
     this.$form = this.$element.parents('form');
@@ -72,6 +77,7 @@
   };
 
   Editable.prototype.renderCancelButton = function() {
+    if (this.params.cancel !== 'button' && this.params.cancel !== 'both') return this;
     if (this.$cancel) return this;
     this.$cancel = $('<button>')
       .text('Cancel')
@@ -94,22 +100,32 @@
     return this;
   };
 
+  Editable.prototype.isAbleToEdit = function() {
+    if (this.params.multiedit) return true;
+    var result = true;
+    this.$form.find('[data-name]').each(function() {
+      console.log('what');
+      if ($(this).data('mode') === 'edit') result = false;;
+    })
+    return result;
+  };
+
   Editable.prototype.switchToEditMode = function() {
-    if (this.$form.data('mode') === 'edit') return this;
+    if (!this.isAbleToEdit() || this.$element.data('mode') === 'edit') return this;
     this.$element.trigger('view-end', this);
     this.$element.hide();
     this.$container.show();
-    this.$form.data('mode', 'edit');
+    this.$element.data('mode', 'edit');
     this.$element.trigger('edit-start', this);
     return this;
   };
 
   Editable.prototype.switchToViewMode = function() {
-    if (this.$form.data('mode') === 'view') return this;
+    if (this.$element.data('mode') === 'view') return this;
     this.$element.trigger('edit-end', this);
     this.$container.hide();
     this.$element.show();
-    this.$form.data('mode', 'view');
+    this.$element.data('mode', 'view');
     this.$element.trigger('view-start', this);
     return this;
   };
@@ -123,7 +139,7 @@
       return false;
     });
 
-    this.$cancel.on('click', function() {
+    this.$cancel && this.$cancel.on('click', function() {
       self.switchToViewMode();
       return false;
     });
@@ -133,6 +149,17 @@
       self.$container.addClass('loading');
       return false;
     });
+
+    if (self.params.cancel === 'both' || self.params.cancel === 'blur') {
+      $('body').on('click', function() {
+        self.switchToViewMode();
+        return false;
+      });
+      self.$container.on('click', function(e) {
+        e.stopPropagation();
+        return false;
+      });
+    }
 
     this.$form.on('error', function(e, editable, data) {
       editable.$container.removeClass('loading');
