@@ -56,6 +56,7 @@
   function Editable($element, params, editableForm) {
 
     this.$element = $element;
+    this.$parent = $element.parent();
     this.params = params;
     this.editableForm = editableForm;
     this.$form = this.$element.parents('form');
@@ -159,6 +160,7 @@
     this.$container.show();
     this.$element.data('mode', 'edit');
     this.$edit && this.$edit.hide();
+    this.$parent.addClass('editing').removeClass('success');
     this.$element.trigger('edit-start', this);
     this.$form.trigger('edit-start', this);
     return this;
@@ -171,6 +173,7 @@
     this.$element.show();
     this.$element.data('mode', 'view');
     this.$edit && this.$edit.show();
+    this.$parent.removeClass('editing');
     this.$element.trigger('view-start', this);
     this.$form.trigger('edit-end', this);
     return this;
@@ -199,17 +202,18 @@
 
     this.$submit.on('click', function() {
       self.$form.trigger('submit', self);
-      self.$container.addClass('loading');
+      self.$parent.addClass('loading');
       return false;
     });
 
     this.$form.on('error', function(e, editable, data) {
-      editable.$container.removeClass('loading');
+      editable.$parent.removeClass('loading');
       return false;
     });
 
     this.$form.on('success', function(e, editable, data) {
-      editable.$container.removeClass('loading');
+      editable.$parent.removeClass('loading');
+      editable.$parent.addClass('success');
       editable
         .updateValue(data[editable.name] || editable.$input.val())
         .switchToViewMode()
