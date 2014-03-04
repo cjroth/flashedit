@@ -1,0 +1,14 @@
+{
+  "name": "flashedit",
+  "version": "0.0.1",
+  "main": "jquery.flashedit.js",
+  "ignore": [
+    "*",
+    "!jquery.flashedit.js",
+    "!jquery.flashedit.min.js"
+  ],
+  "dependencies": {
+    "jquery": ">= 1.9.0",
+    "flashback": ">= 0.1.0"
+  }
+}
