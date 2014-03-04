@@ -123,7 +123,6 @@
   };
 
   Editable.prototype.renderCancelButton = function() {
-    if (this.params.cancel !== 'button' && this.params.cancel !== 'both') return this;
     if (this.$cancel) return this;
     this.$cancel = $('<button>')
       .text('Cancel')
