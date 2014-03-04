@@ -20,7 +20,6 @@
     this.elements = [];
 
     this.params = $.extend({
-      cancel: 'button', // how should the user cancel editing? (button, blur, or both)
       button: true, // should we show the edit button? (true, false)
       classEditable: 'editable' // what class do editable elements have? (default: "editable")
     }, params);
@@ -205,17 +204,6 @@
       self.$container.addClass('loading');
       return false;
     });
-
-    if (self.params.cancel === 'both' || self.params.cancel === 'blur') {
-      $('body').on('click', function() {
-        self.switchToViewMode();
-        return false;
-      });
-      self.$container.on('click', function(e) {
-        e.stopPropagation();
-        return false;
-      });
-    }
 
     this.$form.on('error', function(e, editable, data) {
       editable.$container.removeClass('loading');
