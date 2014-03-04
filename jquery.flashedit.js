@@ -12,7 +12,6 @@
     new EditableForm($(this), params);
     return this;
   };
-
   function EditableForm($form, params) {
 
     var self = this;
@@ -284,5 +283,7 @@
     }
     return $input;
   }
+
+  $('.flashedit').flashedit();
 
 })(jQuery);
