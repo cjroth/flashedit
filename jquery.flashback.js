@@ -101,6 +101,7 @@
 
     this.params = $.extend({
       redirect: this.$form.data('redirect'),
+      watch: this.$form.data('watch') || false,
       url: this.$form.attr('action'),
       method: this.$form.attr('method') || 'post',
       parser: defaultParser,
@@ -121,6 +122,12 @@
       self.submit(args);
       return false;
     });
+    if (this.params.watch) {
+      this.$form.on('change', function() {
+        self.submit();
+        return false;
+      });
+    }
     return this;
   };
 
@@ -286,5 +293,7 @@
     }
     return url;
   }
+
+  $('.flashback').flashback();
 
 })(jQuery);
