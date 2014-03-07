@@ -107,7 +107,7 @@
     this.$submit = $('<button>')
       .attr('type', 'submit')
       .text('Update')
-      .addClass('btn btn-default') // @todo get these classes from somewhere else
+      .addClass('flashedit-submit-btn') // @todo get these classes from somewhere else
       .appendTo(this.$container)
     return this;
   };
@@ -117,7 +117,7 @@
     if (this.$edit) return this;
     this.$edit = $('<button>')
       .text('Edit')
-      .addClass('edit-button btn btn-default') // @todo get these classes from somewhere else
+      .addClass('flashedit-edit-btn') // @todo get these classes from somewhere else
       .insertAfter(this.$element)
     return this;
   };
@@ -126,7 +126,7 @@
     if (this.$cancel) return this;
     this.$cancel = $('<button>')
       .text('Cancel')
-      .addClass('btn btn-default') // @todo get these classes from somewhere else
+      .addClass('flashedit-cancel-btn') // @todo get these classes from somewhere else
       .appendTo(this.$container)
     return this;
   };
