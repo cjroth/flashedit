@@ -132,8 +132,7 @@
   };
 
   Editable.prototype.initFlashback = function() {
-    var self = this;
-    this.$form.flashback();
+    this.$form.flashback(this.params);
     return this;
   };
 
@@ -206,33 +205,39 @@
       return false;
     });
 
-    this.$form.on('error', function(e, editable, data) {
-      editable.$parent.removeClass('loading');
-      return false;
-    });
+    if (this.$form.hasClass('editable-enabled')) return this;
 
-    this.$form.on('success', function(e, editable, data) {
-      editable.$parent.removeClass('loading');
-      editable.$parent.addClass('success');
-      editable
-        .updateValue(data[editable.name] || editable.$input.val())
-        .switchToViewMode()
-      return false;
-    });
-
-    this.$form.on('edit-start', function(e, editable, data) {
-      self.editableForm.each(function(i, editable) {
-        editable.$edit && editable.$edit.hide();
+    this.$form
+      .on('before-submit', function(e, editable, data) {
+        data[editable.name] = editable.$input.val();
+        return false;
+      })
+      .on('error', function(e, editable, data) {
+        editable.$parent.removeClass('loading');
+        return false;
+      })
+      .on('success', function(e, editable, data) {
+        editable.$parent.removeClass('loading');
+        editable.$parent.addClass('success');
+        editable
+          .updateValue(data[editable.name] || editable.$input.val())
+          .switchToViewMode()
+        return false;
+      })
+      .on('edit-start', function(e, editable, data) {
+        self.editableForm.each(function(i, editable) {
+          editable.$edit && editable.$edit.hide();
+        });
+        return false;
+      })
+      .on('edit-end', function(e, editable, data) {
+        self.editableForm.each(function(i, editable) {
+          editable.$edit && editable.$edit.show();
+        });
+        return false;
       });
-      return false;
-    });
 
-    this.$form.on('edit-end', function(e, editable, data) {
-      self.editableForm.each(function(i, editable) {
-        editable.$edit && editable.$edit.show();
-      });
-      return false;
-    });
+    this.$form.addClass('editable-enabled');
 
     return this;
 
