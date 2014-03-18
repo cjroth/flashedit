@@ -17,6 +17,12 @@
  *      // redirect to url when form submits successfully
  *      redirect: 'http://mywebsite.com/redirect-to-me-when-successful',
  *
+ *      // automatically submit the form when any values within it change
+ *      watch: true,
+ *
+ *      // should we send empty values when we submit the form?
+ *      sendEmptyValues: false,
+ *
  *      // post form data to url (equivalent to the "method" attriute on the <form> tag)
  *      url: 'http://mywebsite.com/post-form-data-here',
  *
@@ -88,8 +94,8 @@
 
   $.fn.flashback = function(params) {
     this.each(function() {
+      if (this._flashback) return;
       var $form = $(this);
-      if ($form.hasClass('flashback')) return;
       new Flashback($form, params);
     });
     return this;
@@ -102,6 +108,7 @@
     this.params = $.extend({
       redirect: this.$form.data('redirect'),
       watch: this.$form.data('watch') || false,
+      sendEmptyValues: this.$form.data('send-empty-values') || false,
       url: this.$form.attr('action'),
       method: this.$form.attr('method') || 'post',
       parser: defaultParser,
@@ -111,7 +118,7 @@
       error: defaultErrorCallback
     }, params);
 
-    this.$form.addClass('flashback');
+    this.$form.get(-1)._flashback = true;
     this.attachEventListeners();
 
   }
@@ -137,10 +144,12 @@
 
     var self = this;
 
+    var data = this.$form.serializeArray();
+
     var $xhr = $.ajax({
       url: this.params.url,
       type: this.params.method.toUpperCase(),
-      data: this.$form.serialize()
+      data: self.params.sendEmptyValues ? data : prepData(data)
     });
 
     $xhr.fail(function($xhr, textStatus, errorThrown) {
@@ -292,6 +301,14 @@
       url = url.replace(':' + param, data[param]);
     }
     return url;
+  }
+
+  function prepData(data) {
+    var newData = {};
+    for (var i in data) {
+      if (data[i].value) newData[data[i].name] = data[i].value;
+    }
+    return newData;
   }
 
   $('.flashback').flashback();
