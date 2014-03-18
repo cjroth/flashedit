@@ -16,16 +16,16 @@
  *
  *      // redirect to url when form submits successfully
  *      redirect: 'http://mywebsite.com/redirect-to-me-when-successful',
- *
+ *      
  *      // automatically submit the form when any values within it change
  *      watch: true,
- *
+ *      
  *      // should we send empty values when we submit the form?
  *      sendEmptyValues: false,
- *
+ *      
  *      // post form data to url (equivalent to the "method" attriute on the <form> tag)
  *      url: 'http://mywebsite.com/post-form-data-here',
- *
+ *      
  *      // method, as in post, get, put, delete, etc
  *      method: 'post',
  *
@@ -144,12 +144,14 @@
 
     var self = this;
 
-    var data = this.$form.serializeArray();
+    data = self.params.sendEmptyValues ? this.$form.serialize() : prepData(this.$form.serializeArray());
+
+    self.$form.trigger('before-submit', [args, data]);
 
     var $xhr = $.ajax({
       url: this.params.url,
       type: this.params.method.toUpperCase(),
-      data: self.params.sendEmptyValues ? data : prepData(data)
+      data: data
     });
 
     $xhr.fail(function($xhr, textStatus, errorThrown) {
