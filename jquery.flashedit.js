@@ -257,6 +257,7 @@
   }
 
   function parseDataLikeJSON(raw) {
+    raw = raw.replace(/\\"/g, '"');
     try {
       return JSON.parse(raw);
     } catch(e) {
